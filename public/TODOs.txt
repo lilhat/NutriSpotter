@@ -1,0 +1,5 @@
+TODOs
+
+1. Add products
+
+2. Start writing initial document
