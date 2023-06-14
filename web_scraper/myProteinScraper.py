@@ -41,7 +41,7 @@ def get_categories():
             department_links = [link for link in links if '/' in link]
             print(department_links)
             # Append to global urls list
-            for j in range(30, 35):
+            for j in range(0, len(department_links)):
                 url_single = 'https://www.myprotein.com' + department_links[j]
                 urls.append(url_single)
             # Break out of retry loop if successful
