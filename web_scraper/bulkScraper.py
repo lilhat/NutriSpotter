@@ -32,7 +32,7 @@ def get_categories():
             body = response.content
             soup = BeautifulSoup(body, 'html.parser')
             # Target specific li elements
-            product_elements = soup.find_all('a', {'class': 'responsiveFlyoutMenu_levelThreeLink'})
+            product_elements = soup.find_all('a', {'class': 'navigation__inner-link'})
             links = []
             # Extract href of hyperlink elements within each li
             for product_element in product_elements:
@@ -41,9 +41,8 @@ def get_categories():
             department_links = [link for link in links if '/' in link]
             print(department_links)
             # Append to global urls list
-            for j in range(30, 35):
-                url_single = 'https://www.bulk.com/uk' + department_links[j]
-                urls.append(url_single)
+            for j in range(0, len(department_links)):
+                urls.append(department_links[j])
             # Break out of retry loop if successful
             print(urls)
             break
@@ -92,8 +91,8 @@ def single_request(url):
         # Check response success
         if response.status_code == 200:
             # Call function to extract description and image using response content
-            description, image = scrape_desc(response.content)
-            return description, image
+            description = scrape_desc(response.content)
+            return description
         else:
             print("Error: " + str(response.status_code))
             print("Url: " + url)
@@ -105,14 +104,14 @@ def scrape_url(body):
         # Parse content with BeautifulSoup
         soup = BeautifulSoup(body, 'html.parser')
         # Find each product component in the content
-        product_titles = soup.find_all('h3', {'class': 'athenaProductBlock_productName'})
-        product_prices = soup.find_all('span', {'class': 'athenaProductBlock_fromValue'})
-        category_title_element = soup.find('h1', {'id': 'responsive-product-list-title'})
-        product_links = soup.find_all('a', {'class': 'athenaProductBlock_linkImage'})
+        product_titles = soup.find_all('a', {'class': 'product-item-link'})
+        product_prices = soup.find_all('span', {'class': 'price'})
+        category_title_element = soup.find('h1', {'class': 'page-title'})
+        product_images = soup.find_all('img', {'class': 'product-image-photo'})
         # Check if category title exists
         category_title = "N/A"
         if category_title_element is not None:
-            category_title = category_title_element.find('h1', {'id': 'responsive-product-list-title'}).text.strip()
+            category_title = category_title_element.text.strip()
 
         product_list = []
         price_list = []
@@ -122,6 +121,12 @@ def scrape_url(body):
 
         # Extract text of each product title and append into list
         for product_title in product_titles:
+            link = product_title['href']
+            link_list.append(link)
+            # Call function to scrape deeper product page level
+            desc = single_request(link)
+            # Append returned description and image into lists
+            desc_list.append(desc)
             title_element = re.sub('^[\s]+|[\s]+$', '', product_title.text.strip())
             if title_element:
                 product_list.append(title_element)
@@ -135,15 +140,10 @@ def scrape_url(body):
             else:
                 price_list.append(text)
 
-        # Extract links of each product and append into list
-        for product_link in product_links:
-            full_url = 'https://www.bulk.com/uk' + product_link['href']
-            link_list.append(full_url)
-            # Call function to scrape deeper product page level
-            desc, image = single_request(full_url)
-            # Append returned description and image into lists
-            desc_list.append(desc)
+        for product_image in product_images:
+            image = product_image['src']
             image_list.append(image)
+
 
         # Zip all lists together to create a list of dictionaries containing the information for a single product
         # Print each dictionary and add it to the products list
@@ -163,24 +163,19 @@ def scrape_desc(body):
         # Parse content with BeautifulSoup
         soup = BeautifulSoup(body, 'html.parser')
         # Target product description and image in the content
-        product_desc = soup.find('div', {'class': 'productDescription_synopsisContent'})
-        product_image = soup.find('img', {'class': 'athenaProductImageCarousel_image'})
+        product_desc = soup.find('div', {'id': 'description'})
+
 
         # Extract description text if exists
         if product_desc:
-            description = re.sub('^[\s]+|[\s]+$', '', product_desc.text)
-            description = description.replace('\n', ' ').replace('1\xa0', ' ').replace('\xa0', ' ')
+            description = re.sub('^[\s]+|[\s]+$', ' ', product_desc.text)
+            description = description.replace('\n', ' ').replace('\xa0', ' ').replace('1\xa0', ' ').replace('\r', '')
         else:
             description = "N/A"
 
-        # Extract image link if exists
-        if product_image:
-            image = product_image['src']
-        else:
-            image = 'N/A'
 
         # Return description and image
-        return description, image
+        return description
 
     except KeyError:
         print("Key Error occurred")

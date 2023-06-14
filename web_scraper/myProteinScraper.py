@@ -42,8 +42,11 @@ def get_categories():
             print(department_links)
             # Append to global urls list
             for j in range(0, len(department_links)):
-                url_single = 'https://www.myprotein.com' + department_links[j]
-                urls.append(url_single)
+                if 'https' in department_links[j]:
+                    urls.append(department_links[j])
+                else:
+                    url_single = 'https://www.myprotein.com' + department_links[j]
+                    urls.append(url_single)
             # Break out of retry loop if successful
             print(urls)
             break
@@ -112,7 +115,7 @@ def scrape_url(body):
         # Check if category title exists
         category_title = "N/A"
         if category_title_element is not None:
-            category_title = category_title_element.find('h1', {'id': 'responsive-product-list-title'}).text.strip()
+            category_title = category_title_element.text.strip()
 
         product_list = []
         price_list = []
